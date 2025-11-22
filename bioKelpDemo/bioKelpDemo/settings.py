@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'bioKelpApp'
 ]
 
 MIDDLEWARE = [
@@ -54,7 +55,7 @@ ROOT_URLCONF = 'bioKelpDemo.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path(BASE_DIR,"templates")],
+        'DIRS': [os.path.join(BASE_DIR, "templates")],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -71,15 +72,15 @@ WSGI_APPLICATION = 'bioKelpDemo.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-import credenciales
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': credenciales.NAME,
-        'USER': credenciales.USER,
-        'PASSWORD': credenciales.PASSWORD,
-        'HOST': credenciales.HOST,
-        'PORT': credenciales.PORT,
+        'NAME': "BioKelp_db",
+        'USER': "root",
+        'PASSWORD': "123456",
+        'HOST': "localhost",
+        'PORT': "3306",
         'OPTIONS': {
             'charset': 'utf8mb4',
         }
