@@ -71,11 +71,18 @@ WSGI_APPLICATION = 'bioKelpDemo.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+import credenciales
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': credenciales.NAME,
+        'USER': credenciales.USER,
+        'PASSWORD': credenciales.PASSWORD,
+        'HOST': credenciales.HOST,
+        'PORT': credenciales.PORT,
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        }
     }
 }
 
