@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alerts & Reports</title>
-    <link rel="stylesheet" href="{%static "static" %}">
+    <title>Alerta & Reportes</title>
+    <link rel="stylesheet" href="{% static 'css/metrica.css' %}">
 </head>
 <body>
 
@@ -15,44 +15,52 @@
             <a href="#">Dashboard</a>
             <a href="#">Inventory</a>
             <a href="#">Orders</a>
-            <a href="#" class="active">Alerts & Reports</a>
+            <a href="#" class="active">Alertas & Reportes</a>
         </nav>
         <div class="profile"></div>
     </header>
 
     <main class="container">
 
-        <h1>Alerts & Reports</h1>
+        <h1>Alerta & Reportes</h1>
 
-        <section class="notifications">
-            <h2>Automatic Notifications</h2>
+    <section class="notifications">
+        <h2>Notificaciones Automaticas</h2>
 
-            <div class="alert-card">
-                <div class="icon">⚠️</div>
-                <div>
-                    <h3>Low Stock Alert</h3>
-                    <p>Stock of Ulva Lactuca is below the minimum threshold. Current stock: 500 kg, Minimum: 1000 kg</p>
+        {% for item in alertas_stock %}
+        
+            <div class="alert-card" style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 15px; margin-bottom: 10px; border-radius: 8px;">
+                <div class="icon" style="color: #856404; font-weight: bold; font-size: 1.1em;">
+                    ⚠️ Alerta, bajo stock: {{ item.tipo_alga }}
+                </div>
+                <div class="message" style="color: #856404; margin-top: 5px;">
+                    Las existencias de {{ item.tipo_alga }} están críticas.
+                    <br>
+                    <strong>Actual: {{ item.cantidad_disponible }} {{ item.unidad }}</strong>. 
+                    Mínimo requerido: {{ umbral }} kg.
                 </div>
             </div>
 
-            <div class="alert-card">
-                <div class="icon">⏱️</div>
-                <div>
-                    <h3>Order Delay</h3>
-                    <p>Order #789 for Gracilaria Chilensis is delayed. Expected delivery: 2024-08-15</p>
-                </div>
+        {% empty %}
+            <div class="alert-card" style="background-color: #d4edda; color: #155724; padding: 15px; border-radius: 8px;">
+                ✅ Todo el stock está saludable. No hay alertas.
             </div>
-        </section>
+        {% endfor %}
+        
+    </section>
 
         <section class="production">
-            <h2>Production Overview</h2>
+            <h2>Descripción general de la producción</h2>
 
             <div class="production-grid">
 
                 <div class="historical">
-                    <h3>Historical Production</h3>
-                    <h1>12,500 kg</h1>
-                    <p class="subtitle">Last 12 Months</p>
+                    <h3>Total Produccion</h3>
+
+                    
+        
+                    <h1>{{suma}} kg</h1> 
+                    <!-- <p class="subtitle">Last 12 Months</p> -->
 
                     <div class="bars">
                         <div class="bar" style="height: 120px"></div>
@@ -65,19 +73,17 @@
                     </div>
 
                     <div class="months">
-                        <span>Jan</span><span>Feb</span><span>Mar</span>
-                        <span>Apr</span><span>May</span><span>Jun</span><span>Jul</span>
+                        <span>Ene</span><span>Feb</span><span>Mar</span>
+                        <span>Abr</span><span>May</span><span>Jun</span><span>Jul</span>
                     </div>
                 </div>
 
                 <div class="future">
-                    <h3>Future Projections</h3>
+                    <h3>Produccion estimada</h3>
                     <h1>15,000 kg</h1>
                     <p class="subtitle">Next 6 Months</p>
 
-                    <div class="placeholder-chart">
-                        (Gráfico removido)
-                    </div>
+            
                 </div>
 
             </div>
