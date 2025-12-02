@@ -107,3 +107,100 @@ def renderRegistrarClientes(request):
     # Enviamos el formulario (form) al HTML
     return render(request, "templatesApp/registrarCliente.html", {'form': form})
 #------------------------------------------------------------
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.urls import reverse
+from .models import Lote, Movimiento, Especie
+from .forms import LoteForm, MovimientoForm
+from django.shortcuts import render, get_object_or_404
+from .models import Especie, Movimiento
+
+
+def lista_lotes(request):
+    lotes = Lote.objects.select_related('especie', 'origen').all()
+    return render(request, 'bioKelpApp/lotes/lista.html', {'lotes': lotes})
+
+def crear_lote(request):
+    if request.method == 'POST':
+        form = LoteForm(request.POST)
+        if form.is_valid():
+            lote = form.save()
+            messages.success(request, 'Lote creado correctamente.')
+            return redirect('bioKelpApp:detalle_lote', lote_id=lote.id)
+    else:
+        form = LoteForm()
+    return render(request, 'bioKelpApp/lotes/form.html', {'form': form, 'titulo': 'Crear Lote'})
+
+def editar_lote(request, lote_id):
+    lote = get_object_or_404(Lote, id=lote_id)
+    if request.method == 'POST':
+        form = LoteForm(request.POST, instance=lote)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Lote actualizado correctamente.')
+            return redirect('bioKelpApp:detalle_lote', lote_id=lote.id)
+    else:
+        form = LoteForm(instance=lote)
+    return render(request, 'bioKelpApp/lotes/form.html', {'form': form, 'titulo': 'Editar Lote'})
+
+def detalle_lote(request, lote_id):
+    lote = get_object_or_404(Lote, id=lote_id)
+    movimientos = lote.movimientos.all()
+    return render(request, 'bioKelpApp/lotes/detalle.html', {'lote': lote, 'movimientos': movimientos})
+
+def historial_lote(request, lote_id):
+    lote = get_object_or_404(Lote, id=lote_id)
+    movimientos = lote.movimientos.order_by('fecha')  # cronológico asc
+    return render(request, 'bioKelpApp/lotes/historial.html', {'lote': lote, 'movimientos': movimientos})
+
+def stock_por_especie(request, especie_id=None):
+    especies = Especie.objects.all()
+    selected = None
+    stock = {}
+    if especie_id:
+        selected = get_object_or_404(Especie, id=especie_id)
+        stock = Movimiento.stock_actual_por_especie(selected.id)
+    return render(request, 'bioKelpApp/stock/por_especie.html', {
+        'especies': especies,
+        'selected': selected,
+        'stock': stock
+    })
+
+def registrar_movimiento(request):
+    if request.method == 'POST':
+        form = MovimientoForm(request.POST)
+        if form.is_valid():
+            movimiento = form.save(commit=False)
+            movimiento.usuario = request.user if request.user.is_authenticated else None
+            movimiento.save()
+            messages.success(request, 'Movimiento registrado.')
+            return redirect(reverse('bioKelpApp:lista_lotes'))
+    else:
+        form = MovimientoForm()
+    return render(request, 'bioKelpApp/movimientos/form.html', {'form': form})
+
+def historial_algas(request):
+    especies = Especie.objects.order_by('nombre')
+    return render(request, 'bioKelpApp/stock/historial_algas.html', {
+        'especies': especies,
+        'titulo': 'Historial de algas (por especie)'
+    })
+
+def historial_por_especie(request, especie_id):
+    especie = get_object_or_404(Especie, pk=especie_id)
+
+    movimientos = (Movimiento.objects
+                   .select_related('lote', 'especie', 'usuario')
+                   .filter(especie=especie)
+                   .order_by('-fecha'))
+
+    stock = Movimiento.stock_actual_por_especie(especie.id)
+
+    return render(request, 'bioKelpApp/stock/historial_por_especie.html', {
+        'especie': especie,
+        'movimientos': movimientos,
+        'stock': stock,
+        'titulo': f'Historial: {especie.nombre}',
+    })

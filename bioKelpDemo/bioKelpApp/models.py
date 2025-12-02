@@ -1,8 +1,12 @@
-from django.db import models
 
 # Create your models here.
 from django.db import models
 from django.utils import timezone
+
+
+from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
+
 
 class Usuario(models.Model):
     # Diagrama: PK int id_usuario
@@ -161,3 +165,111 @@ class LogAuditoria(models.Model):
 
     class Meta:
         db_table = 'log_auditoria'
+
+User = get_user_model()
+
+FORMATO_CHOICES = [
+    ('humedo', 'Húmedo'),
+    ('seco', 'Seco'),
+]
+
+
+class Planta(models.Model):
+
+    nombre = models.CharField(max_length=120, unique=True)
+    descripcion = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.nombre
+
+
+class Especie(models.Model):
+    nombre = models.CharField(max_length=120, unique=True)
+    descripcion = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.nombre
+
+
+class Lote(models.Model):
+
+    codigo = models.CharField(
+        max_length=50,
+        unique=True,
+        null=True,
+        blank=True,  
+    )
+    especie = models.ForeignKey(Especie, on_delete=models.PROTECT, related_name='lotes')
+    origen = models.ForeignKey(Planta, on_delete=models.PROTECT, related_name='lotes')  # procedencia
+    cantidad_humedo_kg = models.FloatField(default=0)   # cantidad en kg húmedo
+    cantidad_seco_kg = models.FloatField(default=0)     # cantidad en kg seco (opcional)
+    fecha_cosecha = models.DateField(null=True, blank=True)
+    fecha_almacenamiento = models.DateField(null=True, blank=True)
+    fecha_procesamiento = models.DateField(null=True, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+class Movimiento(models.Model):
+    TIPO_CHOICES = [
+        ('produccion', 'Producción'),
+        ('compra', 'Compra externa'),
+        ('consumo', 'Consumo / Salida'),
+        ('ajuste', 'Ajuste'),
+        ('etapa_update', 'Actualización de etapa'),
+    ]
+
+    lote = models.ForeignKey(Lote, on_delete=models.CASCADE, related_name='movimientos', null=True, blank=True)
+    especie = models.ForeignKey(Especie, on_delete=models.PROTECT, related_name='movimientos')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    cantidad_humedo_kg = models.FloatField(default=0)
+    cantidad_seco_kg = models.FloatField(default=0)
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    fecha = models.DateTimeField(default=timezone.now)
+    descripcion = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f'{self.tipo} {self.especie.nombre} {self.cantidad_seco_kg}kg(seco)'
+
+    @staticmethod
+    def stock_actual_por_especie(especie_id):
+
+        from django.db.models import Sum, Q
+        qs = Movimiento.objects.filter(especie_id=especie_id)
+        suma_humedo_pos = qs.filter(tipo__in=['produccion', 'compra', 'ajuste']).aggregate(total=Sum('cantidad_humedo_kg'))['total'] or 0
+        suma_humedo_neg = qs.filter(tipo='consumo').aggregate(total=Sum('cantidad_humedo_kg'))['total'] or 0
+        suma_seco_pos = qs.filter(tipo__in=['produccion', 'compra', 'ajuste']).aggregate(total=Sum('cantidad_seco_kg'))['total'] or 0
+        suma_seco_neg = qs.filter(tipo='consumo').aggregate(total=Sum('cantidad_seco_kg'))['total'] or 0
+        return {
+            'humedo_kg': suma_humedo_pos - suma_humedo_neg,
+            'seco_kg': suma_seco_pos - suma_seco_neg,
+        }
+
+
+class Alerta(models.Model):
+    NIVEL_CHOICES = [
+        ('info', 'Información'),
+        ('warning', 'Advertencia'),
+        ('critical', 'Crítica'),
+    ]
+    especie = models.ForeignKey(
+        Especie,
+        on_delete=models.CASCADE,
+        related_name='alertas',
+        null=True,
+        blank=True,
+    )
+    mensaje = models.TextField()
+    nivel = models.CharField(max_length=10, choices=NIVEL_CHOICES, default='warning')
+    creada_en = models.DateTimeField(auto_now_add=True)
+    leida = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'alerta'
+
+    def __str__(self):
+        especie_nombre = self.especie.nombre if self.especie else 'Sin especie'
+        return f'{self.nivel.upper()} - {especie_nombre} - {self.mensaje[:40]}'
+

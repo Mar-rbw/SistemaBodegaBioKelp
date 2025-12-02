@@ -1,5 +1,7 @@
 from django import forms
-from .models import Cliente
+from .models import Cliente, Lote, Movimiento, Especie, Planta
+
+
 
 # Lista de opciones para el Select de Países (puedes agregar más)
 PAISES_CHOICES = [
@@ -103,3 +105,112 @@ class ClienteForm(forms.ModelForm):
                 raise forms.ValidationError("Este RUT ya está registrado en el sistema.")
 
             return rut
+    
+
+
+
+class LoteForm(forms.ModelForm):
+    # Campos de texto que verá el usuario
+    especie_nombre = forms.CharField(
+        label="Especie",
+        max_length=120,
+        required=True,
+    )
+    origen_nombre = forms.CharField(
+        label="Origen / Planta",
+        max_length=120,
+        required=True,
+    )
+
+    class Meta:
+        model = Lote
+        fields = [
+            'codigo',
+            'cantidad_humedo_kg',
+            'cantidad_seco_kg',
+            'fecha_cosecha',
+            'fecha_almacenamiento',
+            'fecha_procesamiento',
+        ]
+        widgets = {
+            'fecha_cosecha': forms.DateInput(attrs={'type': 'date'}),
+            'fecha_almacenamiento': forms.DateInput(attrs={'type': 'date'}),
+            'fecha_procesamiento': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Cuando editas un lote existente, rellenar los campos de texto
+        if self.instance and self.instance.pk:
+            if self.instance.especie:
+                self.fields['especie_nombre'].initial = self.instance.especie.nombre
+            if self.instance.origen:
+                self.fields['origen_nombre'].initial = self.instance.origen.nombre
+
+    def clean(self):
+        cleaned = super().clean()
+        fc = cleaned.get('fecha_cosecha')
+        fa = cleaned.get('fecha_almacenamiento')
+        fp = cleaned.get('fecha_procesamiento')
+
+        if fa and fc and fa < fc:
+            self.add_error('fecha_almacenamiento', 'La fecha de almacenamiento no puede ser anterior a la fecha de cosecha.')
+
+        if fp and fa and fp < fa:
+            self.add_error('fecha_procesamiento', 'La fecha de procesamiento no puede ser anterior a la fecha de almacenamiento.')
+
+        return cleaned
+
+    def save(self, commit=True):
+
+        especie_nombre = self.cleaned_data.get('especie_nombre')
+        origen_nombre = self.cleaned_data.get('origen_nombre')
+
+        # Crear o recuperar Especie
+        especie_obj, _ = Especie.objects.get_or_create(nombre=especie_nombre)
+
+        # Crear o recuperar Planta (origen)
+        origen_obj, _ = Planta.objects.get_or_create(nombre=origen_nombre)
+
+        lote = super().save(commit=False)
+        lote.especie = especie_obj
+        lote.origen = origen_obj
+
+        if commit:
+            lote.save()
+
+        return lote
+
+class MovimientoForm(forms.ModelForm):
+    especie_nombre = forms.CharField(
+        label="Especie",
+        max_length=120,
+        required=True,
+    )
+
+    class Meta:
+        model = Movimiento
+        fields = [
+            'lote',
+            'tipo',
+            'cantidad_humedo_kg',
+            'cantidad_seco_kg',
+            'descripcion',
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.especie:
+            self.fields['especie_nombre'].initial = self.instance.especie.nombre
+
+    def save(self, commit=True):
+        especie_nombre = self.cleaned_data.get('especie_nombre')
+        especie_obj, _ = Especie.objects.get_or_create(nombre=especie_nombre)
+
+        mov = super().save(commit=False)
+        mov.especie = especie_obj
+
+        if commit:
+            mov.save()
+
+        return mov

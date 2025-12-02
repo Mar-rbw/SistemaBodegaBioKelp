@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Detalle lote {{ lote.codigo }}</h2>
+<ul>
+  <li>Especie: {{ lote.especie.nombre }}</li>
+  <li>Origen: {{ lote.origen.nombre }}</li>
+  <li>Fecha cosecha: {{ lote.fecha_cosecha }}</li>
+  <li>Fecha almacenamiento: {{ lote.fecha_almacenamiento }}</li>
+  <li>Fecha procesamiento: {{ lote.fecha_procesamiento }}</li>
+</ul>
+
+<h3>Historial de movimientos</h3>
+<ul>
+  {% for m in movimientos %}
+    <li>{{ m.fecha }} — {{ m.tipo }} — Húmedo: {{ m.cantidad_humedo_kg }}kg — Seco: {{ m.cantidad_seco_kg }}kg — {{ m.descripcion }}</li>
+  {% empty %}
+    <li>No hay movimientos registrados.</li>
+  {% endfor %}
+</ul>
+<a href="{% url 'bioKelpApp:historial_lote' lote.id %}">Ver historial completo</a>
+{% endblock %}

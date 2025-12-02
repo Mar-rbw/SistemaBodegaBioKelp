@@ -15,11 +15,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from bioKelpApp.views import renderTMetrica, renderClientes, renderVerClientes, renderRegistrarClientes, eliminarCliente
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', include('bioKelpApp.urls')),
     path('metrica/', renderTMetrica, name = "metrica"),
     path('clientes/', renderClientes, name = "clientes"),
     path('ver-cliente', renderVerClientes, name = "verCliente"),
